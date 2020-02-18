@@ -4,25 +4,23 @@ from pygame import transform, key, font
 import pygame.locals
 pygame.init()
 
-size = width, height = 1024, 768
+SIZE = WIDTH, HEIGHT = 1024, 768
 FPS = 60
-title = "Crossy River"
-bigfont = font.Font(None, 100)
-regfont = font.Font(None, 40)
+TITLE = "Crossy River"
+bigfont = font.Font("Gamer.ttf", 100)
+regfont = font.Font("Gamer.ttf", 40)
 
-p1spawnx = width/2-24
-p1spawny = height-64
-p2spawnx = width/2-24
-p2spawny = 0
+P1SPAWNX = WIDTH/2-24
+P1SPAWNY = HEIGHT-64
+P2SPAWNX = WIDTH/2-24
+P2SPAWNY = 0
 
-sharkSpdMultiplier = 4
+SHARKSPDMULTIPLIER = 4
 
-blue = [0, 100, 255]
-black = [0, 0, 0]
-white = [200, 200, 200]
-red = [255, 0, 0]
-green = [0, 255, 0]
+BLUE = [0, 100, 255]
+BLACK = [0, 0, 0]
+WHITE = [200, 200, 200]
 
-gameOverText = "You Lose"
-p1SpawnText = "PLAYER 1 : GET READY!"
-p2SpawnText = "PLAYER 2 : GET READY!"
+GAMEOVERTXT = "You Lose"
+P1SPAWNTXT = "PLAYER 1 : GET READY!"
+P2SPAWNTXT = "PLAYER 2 : GET READY!"
