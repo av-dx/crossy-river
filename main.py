@@ -23,6 +23,7 @@ def load_tiles(filename, width, height, scalex=1, scaley=1):
 
 
 screen = display.set_mode(size)
+display.set_caption(title)
 clock = time.Clock()
 timer = 0
 
@@ -44,15 +45,18 @@ p2SpawnMsgRect.center = ((width//2), (height//2))
 mspawners = []
 fspawners = []
 shark = object
-playerAnims = [[], []]
-playerAnims[0] += load_tiles("player1.png", 16, 16, 2, 2)
-playerAnims[1] += load_tiles("player2.png", 16, 16, 2, 2)
-shipAnim = [
+
+playerSprites = [[], []]
+playerSprites[0] += load_tiles("player1.png", 16, 16, 2, 2)
+playerSprites[1] += load_tiles("player2.png", 16, 16, 2, 2)
+
+shipSprites = [
     transform.scale(image.load("ship1.png").convert_alpha(), (32, 32)),
     transform.scale(image.load("ship2.png").convert_alpha(), (32, 32))
 ]
-fixedobs = []
-fixedobs += load_tiles("huts.png", 16, 16, 3, 3)
+
+fixedObstacleSprites = []
+fixedObstacleSprites += load_tiles("huts.png", 16, 16, 3, 3)
 
 sharkAnim = [
     transform.scale(image.load("shark1.png").convert_alpha(), (32, 32)),
@@ -81,7 +85,7 @@ class ObstacleSpawner:
                 o = Obstacle(speed, -60, self.y)
             else:
                 o = Obstacle(-speed, width + 60, self.y)
-            o.setimg(shipAnim[self.frame])
+            o.setimg(shipSprites[self.frame])
             self.obstaclelist.append(o)
         else:
             for i in range(num):
@@ -90,7 +94,8 @@ class ObstacleSpawner:
                     while (x_pos > p1spawnx - 32) and (x_pos < p1spawnx + 32):
                         x_pos = random.randrange(64, width - 64)
                 o = Obstacle(0, x_pos, self.y)
-                o.setimg(fixedobs[random.randrange(len(fixedobs))])
+                o.setimg(fixedObstacleSprites[random.randrange(
+                    len(fixedObstacleSprites))])
                 self.obstaclelist.append(o)
 
     def update(self, p):
@@ -113,10 +118,10 @@ class ObstacleSpawner:
                     self.crossed = True
 
         if (self.mobile):
-            if (timer - self.curtimer >= 60):
+            if (timer - self.curtimer >= FPS):
                 self.frame = (self.frame + 1) % 2
                 for o in self.obstaclelist:
-                    o.setimg(shipAnim[self.frame])
+                    o.setimg(shipSprites[self.frame])
                 self.curtimer = timer
         for o in self.obstaclelist:
             o.update(p)
@@ -130,6 +135,9 @@ class ObstacleSpawner:
             o.draw()
 
 
+# Drawable : Base class for all objects with a sprite
+
+
 class Drawable:
     def __init__(self, x=0, y=0):
         self.x, self.y = x, y
@@ -137,12 +145,16 @@ class Drawable:
 
     def setimg(self, img):
         self.spr = img
-        self.rect = self.spr.get_rect().inflate(0, -20)
+        # Reduce the size of hitboxes to make things "fairer"
+        self.rect = self.spr.get_rect().inflate(-10, -20)
         self.rect.move_ip(self.x, self.y)
 
     def draw(self):
         if (self.spr is not None):
             screen.blit(self.spr, self.rect)
+
+
+# Obstacle Class
 
 
 class Obstacle(Drawable):
@@ -158,6 +170,9 @@ class Obstacle(Drawable):
         self.x += self.speed
 
 
+# Special Shark Class
+
+
 class Shark(Obstacle):
     def update(self, p):
         super().update(p)
@@ -167,6 +182,9 @@ class Shark(Obstacle):
         if self.rect.right > width - 80:
             self.setimg(sharkAnim[0])
             self.speed = -self.speed
+
+
+# Player Class
 
 
 class Player(Drawable):
@@ -179,6 +197,8 @@ class Player(Drawable):
         global gameStatus
         global p1Lvl, p2Lvl
         upPressed = downPressed = leftPressed = rightPressed = 0
+
+        # Change which keys are bound based on player
         if (self.num == 1):
             kup = pygame.K_UP
             kdown = pygame.K_DOWN
@@ -189,6 +209,7 @@ class Player(Drawable):
             kdown = pygame.K_s
             kleft = pygame.K_a
             kright = pygame.K_d
+
         if keyStates[kup]:
             upPressed = 1
         if keyStates[kdown]:
@@ -200,17 +221,18 @@ class Player(Drawable):
 
         if (upPressed):
             self.speed[1] -= 4
-            self.setimg(playerAnims[self.num-1][0])
+            self.setimg(playerSprites[self.num-1][0])
         elif (downPressed):
             self.speed[1] += 4
-            self.setimg(playerAnims[self.num-1][2])
+            self.setimg(playerSprites[self.num-1][2])
         elif (leftPressed):
             self.speed[0] -= 4
-            self.setimg(playerAnims[self.num-1][3])
+            self.setimg(playerSprites[self.num-1][3])
         elif (rightPressed):
             self.speed[0] += 4
-            self.setimg(playerAnims[self.num-1][1])
+            self.setimg(playerSprites[self.num-1][1])
 
+        # Stop player when it reaches the edges of screen
         if (self.rect.top+self.speed[1] < 0 or
                 self.rect.bottom+self.speed[1] > height):
             self.speed[1] = 0
@@ -221,12 +243,17 @@ class Player(Drawable):
         self.x += self.speed[0]
         self.y += self.speed[1]
         self.speed = [0, 0]
+
+        # Swap players if they reach the other side
         if (self.num == 1):
             if (self.y < 20):
                 gameStatus = "swap"
         else:
             if (self.y > height - 64):
                 gameStatus = "swap"
+
+
+# init - what needs to be done at the start of every round
 
 
 def init():
@@ -241,8 +268,11 @@ def init():
         ObstacleSpawner(-60, 620, 1, 1),
         ObstacleSpawner(-60, 665, 1, -1),
     ]
+
+    # The shark is faster than everything else
     shark = Shark(sharkSpdMultiplier*Lvl, 40, 350)
     shark.setimg(sharkAnim[1])
+
     fspawners = [
         ObstacleSpawner(-60, -8),
         ObstacleSpawner(-60, 148),
@@ -252,9 +282,11 @@ def init():
         ObstacleSpawner(-60, 700)
     ]
 
+    # Spawn Lvl number of fixed obstacles in a line
     for s in fspawners:
         s.spawn(Lvl)
 
+    # Set a random spawning rate for moving obstacles
     for ind, s in enumerate(mspawners):
         time.set_timer(pygame.USEREVENT+ind,
                        random.randrange(6000//Lvl, 12000//Lvl))
@@ -262,32 +294,36 @@ def init():
 
 init()
 p = Player(p1spawnx, p1spawny, 1)
-p.setimg(playerAnims[0][0])
+p.setimg(playerSprites[0][0])
 turnOf = 1
 gameStatus = "run"
 
+# Main game loop begins here
 while True:
-    clock.tick(60)
+
+    clock.tick(FPS)  # Run the game at FPS defined in config
     timer += 1
 
     for event in pygame.event.get():
+        # Exit if window is closed
         if event.type == pygame.QUIT:
             pygame.quit()
             exit(0)
+        # Spawn a moving obstacle with speed Lvl
         if event.type >= pygame.USEREVENT and event.type <= pygame.USEREVENT+8:
             mspawners[event.type - pygame.USEREVENT].spawn(1, Lvl)
+
     if gameStatus == "swap" or gameStatus == "hit":  # switch when reach end
-        print("Swapping...")
         gameStatus = "run"
         init()
 
         if (turnOf == 1):
             del p
             p = Player(p2spawnx, p2spawny, 2)
-            p.setimg(playerAnims[1][2])
+            p.setimg(playerSprites[1][2])
             turnOf = 2
             Lvl = p2Lvl
-            p1Score -= timer//60
+            p1Score -= timer//FPS   # Time penalty
             screen.blit(p2SpawnMsg, p2SpawnMsgRect)
             display.flip()
             time.wait(2000)
@@ -296,10 +332,11 @@ while True:
         else:
             del p
             p = Player(p1spawnx, p1spawny, 1)
-            p.setimg(playerAnims[0][0])
+            p.setimg(playerSprites[0][0])
             turnOf = 1
             Lvl = p1Lvl
-            p2Score -= timer//60
+            p2Score -= timer//FPS   # Time penalty
+            # Decide winner
             if (p2Score > p1Score):
                 p2Lvl += 1
                 win = 2
@@ -339,7 +376,7 @@ while True:
     p.draw()
     p1ScoreMsg = regfont.render("PLAYER 1 : " + str(p1Score), True, black)
     p2ScoreMsg = regfont.render("PLAYER 2 : " + str(p2Score), True, black)
-    timeMsg = regfont.render("TIME : " + str(timer//60), True, black)
+    timeMsg = regfont.render("TIME : " + str(timer//FPS), True, black)
 
     screen.blit(p2ScoreMsg, (10, 60))
     screen.blit(p1ScoreMsg, (10, height-100))

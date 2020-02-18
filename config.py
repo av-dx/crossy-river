@@ -5,6 +5,7 @@ import pygame.locals
 pygame.init()
 
 size = width, height = 1024, 768
+FPS = 60
 title = "Crossy River"
 bigfont = font.Font(None, 100)
 regfont = font.Font(None, 40)
